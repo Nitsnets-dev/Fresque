@@ -74,4 +74,9 @@ class ResqueStats
     {
         return $this->redis->get('worker:' . $worker . ':started');
     }
+
+    /** Return old process (Used to clean workers when server is restarted) */
+    public function getAllProcess() {
+        return (array)$this->redis->smembers('workers');
+    }
 }

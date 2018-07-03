@@ -412,6 +412,7 @@ class Fresque
 
                 $this->ResqueStatus = new \ResqueStatus\ResqueStatus(\Resque::Redis());
                 $this->ResqueStats = new ResqueStats(\Resque::Redis());
+                $this->cleanOldProcess();
                 $this->{$command}();
             }
         }
@@ -1535,5 +1536,27 @@ class Fresque
         }
 
         return false;
+    }
+
+    private function cleanOldProcess()
+    {
+        $list = $this->ResqueStats->getAllProcess();
+
+        foreach($list as $process) {
+            $elements = explode(':', $process);
+            
+            $pid = $elements[1];
+    
+            if(!posix_getpgid($pid))
+            {
+                \Resque::Redis()->srem('workers', $process);
+                \Resque::Redis()->del('worker:' . $process);
+                \Resque::Redis()->del('worker:' . $process . ':started');
+                \Resque_Stat::clear('processed:' . $process);
+                \Resque_Stat::clear('failed:' . $process);
+                \Resque::Redis()->hdel('workerLogger', $process);
+            }
+            
+        }
     }
 }
